@@ -1,27 +1,57 @@
 #include "test.hpp"
 
-void merge(int in_arr[size],int p, int q, int r, int out_arr[size]){
-    int i,j,k;
-    i=p;
-    j=q;
-    k=p;
-    //merging arrays in sorted order
-    while(k<r){
-        if(j==r || (i<q && in_arr[i]<=in_arr[j])){
-            out_arr[k]=in_arr[i];
-            i++;
-        }
-        else{
-            assert(j<r);
-            out_arr[k]=in_arr[j];
-            j++;
-        }
-        k++;
-    }
+
+
+// Iterative mergesort function
+void merge(int in_arr[size], int curr_size, int out_arr[size]){
+   	int f1=0;
+   	int f2=curr_size;
+        int mid=curr_size;
+        int right_end=2*curr_size;
+        if(mid>=size) mid = size;
+        if(right_end>=size) right_end = size;
+       // Pick starting point of different subarrays of current size
+       for (int left_start=0; left_start<size; left_start ++)
+       {
+#pragma HLS PIPELINE II=1
+    	   int t1 = in_arr[f1];
+    	   int t2 = (f2==right_end)?0:in_arr[f2];
+           if(f2==right_end || (f1<mid && t1<=t2)){
+               out_arr[left_start]=t1;
+               f1++;
+           }
+           else{
+               assert(f2<right_end);
+               out_arr[left_start]=t2;
+               f2++;
+           }
+           if(f1==mid && f2==right_end){
+   		f1        = right_end;
+   		mid      += 2*curr_size;
+   		right_end += 2*curr_size;
+   		if(mid>=size) mid = size;
+   		if(right_end>=size) right_end = size;
+   		f2=mid;
+           }
+       }
 }
 
+void mergesort(int A[size], int B[size]) {
+#pragma HLS dataflow
+	int temp[STAGES-1][size];
+#pragma HLS ARRAY_PARTITION variable=temp type=complete dim=1
+	int width = 1;
+	merge(A, width, temp[0]);
+	width *= 2;
+	for (int stage = 1; stage < STAGES-1; stage++) {
+#pragma HLS unroll
+	  merge(temp[stage-1], width, temp[stage]);
+	  width *= 2;
+	}
+	merge(temp[STAGES-2], width, B);
+}
 
-
+/*
 // Iterative mergesort function
 void mergesort(int arr[size])
 {
@@ -34,23 +64,43 @@ void mergesort(int arr[size])
    // Merge subarrays in bottom up manner.
    for (curr_size=1; curr_size<=size; curr_size = 2*curr_size)
    {
+   	int f1=0;
+   	int f2=curr_size;
+        int mid=curr_size;
+        int right_end=2*curr_size;
+        if(mid>=size) mid = size;
+        if(right_end>=size) right_end = size;
        // Pick starting point of different subarrays of current size
-       for (left_start=0; left_start<size; left_start += 2*curr_size)
+       for (left_start=0; left_start<size; left_start ++)
        {
-           // Find ending point of left subarray. mid+1 is starting
-           // point of right
-           int mid=(left_start + curr_size);
-           int right_end=(left_start + 2*curr_size);
-           if(mid>=size) mid = size;
-           if(right_end>=size) right_end = size;
            //std::cout<<"\nleft_start "<<left_start<<" curr_size "<<curr_size<<" mid "<<mid<<" right_end "<<right_end;
-           // Merging left and right subarrays
-           merge(arr, left_start, mid, right_end, temp);
+           //merge(arr, left_start, mid, right_end, temp);
+#pragma HLS PIPELINE II=1
+    	   int t1 = arr[f1];
+    	   int t2 = (f2==right_end)?0:arr[f2];
+           if(f2==right_end || (f1<mid && t1<=t2)){
+               temp[left_start]=t1;
+               f1++;
+           }
+           else{
+               assert(f2<right_end);
+               temp[left_start]=t2;
+               f2++;
+           }
+           if(f1==mid && f2==right_end){
+   		f1        = right_end;
+   		mid      += 2*curr_size;
+   		right_end += 2*curr_size;
+   		if(mid>=size) mid = size;
+   		if(right_end>=size) right_end = size;
+   		f2=mid;
+           }
        }
        //std::cout<<"\n";
        for(int i=0;i<size;i++){
+#pragma HLS PIPELINE II=1
            //std::cout<<temp[i]<<" ";
            arr[i]=temp[i];
        }
    }
-}
+}*/
